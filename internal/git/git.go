@@ -65,18 +65,11 @@ func GHAuthLogin() error {
 // fails. Submodules are left for `link` to initialise per module, after
 // dot.toml has had the chance to set up GitHub auth.
 func CloneRepo(url, dest string) error {
-	cmd := exec.Command("git", "clone", url, dest)
-	runner.ConfigureCmd(cmd)
-	if err := cmd.Run(); err != nil {
-		if strings.HasPrefix(url, "git@") {
-			httpsURL := sshToHTTPS(url)
-			fallback := exec.Command("git", "clone", httpsURL, dest)
-			runner.ConfigureCmd(fallback)
-			return fallback.Run()
-		}
-		return err
+	err := runGit("clone", "--quiet", url, dest)
+	if err != nil && strings.HasPrefix(url, "git@") {
+		return runGit("clone", "--quiet", sshToHTTPS(url), dest)
 	}
-	return nil
+	return err
 }
 
 // Init creates an empty repository at dir.

@@ -124,7 +124,7 @@ func (inst *Installer) setUpRepo(repoURL string) error {
 	case statErr == nil:
 	case repoURL != "":
 		if err := gitops.CloneRepo(repoURL, inst.dotfilesDir); err != nil {
-			return err
+			return tui.WithHint(err, "check that "+repoURL+" exists; a private repo needs `gh auth login` (or an SSH key) first")
 		}
 	default:
 		if err := startRepo(inst.dotfilesDir); err != nil {
