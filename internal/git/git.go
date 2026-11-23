@@ -464,6 +464,34 @@ func Push(path string) error {
 	return runGit("-C", path, "push")
 }
 
+// PushNewBranch pushes the current branch to remote and sets it as upstream.
+func PushNewBranch(path, remote string) error {
+	return runGit("-C", path, "push", "--set-upstream", remote, "HEAD")
+}
+
+// HasCommits reports whether the current branch has at least one commit.
+func HasCommits(path string) bool {
+	return exec.Command("git", "-C", path, "rev-parse", "--verify", "--quiet", "HEAD").Run() == nil
+}
+
+// DefaultRemote returns "origin" if it exists, else the only remote, else "".
+func DefaultRemote(path string) string {
+	out, err := exec.Command("git", "-C", path, "remote").Output()
+	if err != nil {
+		return ""
+	}
+	remotes := strings.Fields(string(out))
+	for _, r := range remotes {
+		if r == "origin" {
+			return r
+		}
+	}
+	if len(remotes) == 1 {
+		return remotes[0]
+	}
+	return ""
+}
+
 // runGit runs a git command, surfacing stderr (minus hint lines) as the error.
 func runGit(args ...string) error {
 	cmd := exec.Command("git", args...)

@@ -3,11 +3,13 @@ package main
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
 	"github.com/AugustDG/dot/internal/tui"
 )
 
@@ -265,5 +267,39 @@ func TestTopLevelGroupsOverflow(t *testing.T) {
 	}
 	if got[6] != "+2 more" {
 		t.Errorf("expected overflow marker %q, got %q", "+2 more", got[6])
+	}
+}
+
+// TestPushSetsUpstreamOnFirstPush pins that sync's push sends a branch with
+// no upstream to the repo's remote, and keeps commits local without a remote.
+func TestPushSetsUpstreamOnFirstPush(t *testing.T) {
+	root := t.TempDir()
+	remote := filepath.Join(root, "remote.git")
+	repo := filepath.Join(root, "repo")
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q", repo)
+	git("-C", repo, "commit", "-q", "--allow-empty", "-m", "first")
+
+	if pushed, err := push(repo, "repo", false); pushed || err != nil {
+		t.Fatalf("no remote: pushed=%v err=%v, want false, nil", pushed, err)
+	}
+
+	git("init", "-q", "--bare", remote)
+	git("-C", repo, "remote", "add", "origin", remote)
+	if pushed, err := push(repo, "repo", false); !pushed || err != nil {
+		t.Fatalf("first push: pushed=%v err=%v", pushed, err)
+	}
+	if !gitops.HasUpstream(repo) {
+		t.Error("first push should set the upstream")
+	}
+	if gitops.HasUnpushed(repo) {
+		t.Error("nothing should be left unpushed")
 	}
 }

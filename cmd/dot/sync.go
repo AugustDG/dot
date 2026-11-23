@@ -151,19 +151,8 @@ func syncRepo(path, name, message string, dryRun bool) (bool, error) {
 		synced = true
 	}
 
-	if gitops.HasUnpushed(path) {
-		if dryRun {
-			tui.Info("%s: would push", name)
-		} else {
-			if err := gitops.Push(path); err != nil {
-				return synced, fmt.Errorf("%s: push: %w", name, err)
-			}
-			tui.OK("%s: pushed", name)
-		}
-		synced = true
-	}
-
-	return synced, nil
+	pushed, err := push(path, name, dryRun)
+	return synced || pushed, err
 }
 
 // syncRoot stages the given paths in the dotfiles repo, then commits and pushes.
@@ -199,19 +188,46 @@ func syncRoot(dotfilesDir string, stagePaths []string, message string, dryRun bo
 		}
 	}
 
-	if gitops.HasUnpushed(dotfilesDir) {
-		if dryRun {
-			tui.Info("dotfiles: would push")
-		} else {
-			if err := gitops.Push(dotfilesDir); err != nil {
-				return synced, fmt.Errorf("dotfiles: push: %w", err)
-			}
-			tui.OK("dotfiles: pushed")
+	pushed, err := push(dotfilesDir, "dotfiles", dryRun)
+	return synced || pushed, err
+}
+
+// push sends the repo's unpushed commits to its upstream. A branch with no
+// upstream yet is pushed to the repo's remote and starts tracking it; a repo
+// with no remote keeps its commits local and says so.
+func push(path, name string, dryRun bool) (bool, error) {
+	if gitops.HasUpstream(path) {
+		if !gitops.HasUnpushed(path) {
+			return false, nil
 		}
-		synced = true
+		if dryRun {
+			tui.Info("%s: would push", name)
+			return true, nil
+		}
+		if err := gitops.Push(path); err != nil {
+			return false, fmt.Errorf("%s: push: %w", name, err)
+		}
+		tui.OK("%s: pushed", name)
+		return true, nil
 	}
 
-	return synced, nil
+	if _, err := gitops.CurrentBranch(path); err != nil || !gitops.HasCommits(path) {
+		return false, nil // detached HEAD (e.g. a clean submodule) or nothing to push
+	}
+	remote := gitops.DefaultRemote(path)
+	if remote == "" {
+		tui.Warn("%s: no remote, commits stay local (add one: git -C %s remote add origin <url>)", name, path)
+		return false, nil
+	}
+	if dryRun {
+		tui.Info("%s: would push to %s and track it", name, remote)
+		return true, nil
+	}
+	if err := gitops.PushNewBranch(path, remote); err != nil {
+		return false, fmt.Errorf("%s: push: %w", name, err)
+	}
+	tui.OK("%s: pushed to %s", name, remote)
+	return true, nil
 }
 
 // syncMessage builds the default commit message when the user passes no -m,
