@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ func ejectCmd() *cobra.Command {
 			"into $HOME as real files, and deletes the module from the dotfiles\n" +
 			"repository. Use --delete-files to drop the files from $HOME too, and\n" +
 			"--with-submodules for modules containing Git submodules.\n\n" +
-			"To only take a module's symlinks off this machine, use `dotfiles unlink`.",
+			"To only take a module's symlinks off this machine, use `dot unlink`.",
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: moduleNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {

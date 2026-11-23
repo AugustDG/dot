@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# Bootstrap installer for AugustDG/dotfiles.
-#
-# Downloads the pre-built dotfiles CLI binary for this platform from the latest
-# GitHub release and runs `dotfiles init`.
+# Installs the dot CLI from the latest GitHub release, then runs `dot init`
+# with any arguments given.
 #
 # Usage:
-#   curl -sL https://raw.githubusercontent.com/AugustDG/dotfiles/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/AugustDG/dot/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/AugustDG/dot/main/install.sh | bash -s -- owner/dotfiles
+#
+# DOT_INSTALL_DIR sets where the binary goes (default ~/.local/bin).
+# DOT_SKIP_INIT=1 installs the binary without running `dot init`.
 
 set -euo pipefail
 
-REPO="AugustDG/dotfiles"
+REPO="AugustDG/dot"
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31mxx\033[0m  %s\n' "$*" >&2; exit 1; }
@@ -29,30 +31,33 @@ case "$ARCH" in
   *)             die "Unsupported architecture: $ARCH" ;;
 esac
 
-BINARY="dotfiles-${OS}-${ARCH}"
+BINARY="dot-${OS}-${ARCH}"
 URL="https://github.com/${REPO}/releases/download/latest/${BINARY}"
 
-INSTALL_DIR="${DOTFILES_INSTALL_DIR:-$HOME/.local/bin}"
+INSTALL_DIR="${DOT_INSTALL_DIR:-$HOME/.local/bin}"
 mkdir -p "$INSTALL_DIR"
 
 log "Downloading $BINARY..."
 # Temp file lives in INSTALL_DIR so the final mv is an atomic same-filesystem
 # rename.
-TMPFILE="$(mktemp "${INSTALL_DIR}/.dotfiles.XXXXXX")"
+TMPFILE="$(mktemp "${INSTALL_DIR}/.dot.XXXXXX")"
 trap 'rm -f "$TMPFILE"' EXIT
 if ! curl -fsSL --retry 3 --connect-timeout 10 "$URL" -o "$TMPFILE"; then
   die "Failed to download from $URL"
 fi
 chmod +x "$TMPFILE"
-mv "$TMPFILE" "${INSTALL_DIR}/dotfiles"
+mv "$TMPFILE" "${INSTALL_DIR}/dot"
+log "Installed ${INSTALL_DIR}/dot"
+
+[ "${DOT_SKIP_INIT:-}" = "1" ] && exit 0
 
 export PATH="$INSTALL_DIR:$PATH"
 
-log "Running dotfiles init..."
+log "Running dot init $*"
 # Under `curl | bash`, stdin is the script pipe; reattach the terminal so the
 # interactive module picker can run.
 if ( : </dev/tty ) 2>/dev/null; then
-  exec dotfiles init </dev/tty
+  exec dot init "$@" </dev/tty
 else
-  exec dotfiles init
+  exec dot init "$@"
 fi

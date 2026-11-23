@@ -4,11 +4,11 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +18,8 @@ func bumpCmd() *cobra.Command {
 		Short: "Advance submodules to their upstream latest and re-stow",
 		Long: "Moves each submodule to the newest commit on its own upstream, past the\n" +
 			"commit the dotfiles repo has recorded, then re-stows it. The repo then\n" +
-			"shows the new submodule pointers as changes; run `dotfiles sync` to record them.\n" +
-			"To match what the repo already records instead, use `dotfiles pull`.",
+			"shows the new submodule pointers as changes; run `dot sync` to record them.\n" +
+			"To match what the repo already records instead, use `dot pull`.",
 		ValidArgsFunction: moduleNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runBump(args)

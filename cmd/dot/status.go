@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/bootstrap"
-	"github.com/AugustDG/dotfiles/internal/brew"
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/bootstrap"
+	"github.com/AugustDG/dot/internal/brew"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 

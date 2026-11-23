@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AugustDG/dotfiles/internal/brew"
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/runner"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/syspkg"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/brew"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/runner"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/syspkg"
+	"github.com/AugustDG/dot/internal/tui"
 )
 
 type Installer struct {
@@ -33,19 +33,21 @@ func NewInstaller(dotfilesDir string) *Installer {
 	}
 }
 
-// BootstrapTasks returns the steps that set up the toolchain before modules
-// are linked. A Homebrew failure stops the run; other steps are best-effort.
-func (inst *Installer) BootstrapTasks() []tui.Task {
+// SetupTasks returns the steps that install what dot itself needs and put
+// the repo in place: clone repoURL, or start an empty repo when repoURL is
+// empty and nothing exists yet. Every step is fatal.
+func (inst *Installer) SetupTasks(repoURL string) []tui.Task {
 	var tasks []tui.Task
 	if runtime.GOOS == "linux" {
 		tasks = append(tasks, tui.Task{
 			Title:       "Install Linux prerequisites",
 			Run:         func(context.Context) error { return syspkg.InstallPrereqs() },
 			Interactive: needsSudo(),
+			Fatal:       true,
 		})
 	}
 
-	tasks = append(tasks,
+	return append(tasks,
 		tui.Task{
 			Title: "Install Homebrew",
 			Run: func(context.Context) error {
@@ -61,12 +63,32 @@ func (inst *Installer) BootstrapTasks() []tui.Task {
 			Fatal:       true,
 		},
 		tui.Task{
-			Title: "Install core packages",
-			Run: func(context.Context) error {
-				return brew.InstallPackages(orDefault(inst.manifest().CoreBrew, CoreBrewPackages))
-			},
+			Title: "Install git and stow",
+			Run:   func(context.Context) error { return brew.InstallPackages(requiredPackages) },
+			Fatal: true,
 		},
 		tui.Task{
+			Title: "Set up " + inst.dotfilesDir,
+			Run:   func(context.Context) error { return inst.setUpRepo(repoURL) },
+			Fatal: true,
+		},
+	)
+}
+
+// requiredPackages are the tools dot itself runs.
+var requiredPackages = []string{"git", "stow"}
+
+// ConfigureTasks returns the opt-in steps declared in the repo's dot.toml.
+func (inst *Installer) ConfigureTasks(cfg config.BootstrapConfig) []tui.Task {
+	var tasks []tui.Task
+	if len(cfg.Brew) > 0 {
+		tasks = append(tasks, tui.Task{
+			Title: "Install " + strings.Join(cfg.Brew, ", "),
+			Run:   func(context.Context) error { return brew.InstallPackages(cfg.Brew) },
+		})
+	}
+	if cfg.GitHubAuth {
+		tasks = append(tasks, tui.Task{
 			Title: "GitHub auth",
 			Run: func(context.Context) error {
 				if gitops.IsGHAuthenticated() || !platform.HasTTY() {
@@ -75,78 +97,61 @@ func (inst *Installer) BootstrapTasks() []tui.Task {
 				return gitops.GHAuthLogin()
 			},
 			Interactive: platform.HasTTY() && !gitops.IsGHAuthenticated(),
-		},
-		tui.Task{
-			Title:       "Set default shell to zsh",
-			Run:         func(context.Context) error { return setDefaultShell() },
-			Interactive: needsSudo() && !defaultShellIsZsh(),
-		},
-		tui.Task{
-			Title: "Clone dotfiles repo",
-			Run: func(context.Context) error {
-				if _, err := os.Stat(filepath.Join(inst.dotfilesDir, ".git")); err == nil {
-					return nil
-				}
-				return gitops.CloneRepo(gitops.RepoSSH, inst.dotfilesDir)
-			},
-		},
-		tui.Task{
-			Title: "Install global packages",
-			Run: func(context.Context) error {
-				return brew.InstallPackages(orDefault(inst.manifest().GlobalBrew, GlobalBrewPackages))
-			},
-		},
-		tui.Task{
-			Title: "Install znap",
-			Run: func(context.Context) error {
-				znapPath := filepath.Join(inst.homeDir, ZnapDir)
-				if _, err := os.Stat(znapPath); err == nil {
-					return nil
-				}
-				if err := os.MkdirAll(filepath.Dir(znapPath), 0o755); err != nil {
-					return err
-				}
-				return exec.Command("git", "clone", "--depth", "1", ZnapURL, znapPath).Run()
-			},
-		},
-		releaseBinaryTask(HopperRepo, "hopper"),
-		releaseBinaryTask(GhottoRepo, "gho"),
-		tui.Task{
-			Title: "Back up conflicting files",
-			Run: func(context.Context) error {
-				return backupConflicts(inst.homeDir, orDefault(inst.manifest().BackupTargets, BackupTargets))
-			},
-		},
-	)
-
-	for _, local := range []struct{ name, template string }{
-		{".zprofile.local", ZprofileLocalTemplate},
-		{".zshrc.local", ZshrcLocalTemplate},
-	} {
+		})
+	}
+	if cfg.Shell != "" {
 		tasks = append(tasks, tui.Task{
-			Title: "Create ~/" + local.name,
-			Run: func(context.Context) error {
-				path := filepath.Join(inst.homeDir, local.name)
-				if _, err := os.Stat(path); err == nil {
-					return nil
-				}
-				return os.WriteFile(path, []byte(local.template), 0o600)
-			},
+			Title:       "Set login shell to " + cfg.Shell,
+			Run:         func(context.Context) error { return setLoginShell(cfg.Shell) },
+			Interactive: needsSudo() && !LoginShellIs(cfg.Shell),
+		})
+	}
+	if len(cfg.BackupTargets) > 0 {
+		tasks = append(tasks, tui.Task{
+			Title: "Back up conflicting files",
+			Run:   func(context.Context) error { return backupConflicts(inst.homeDir, cfg.BackupTargets) },
 		})
 	}
 	return tasks
 }
 
-func releaseBinaryTask(repo, bin string) tui.Task {
-	return tui.Task{
-		Title: "Install " + bin,
-		Run: func(context.Context) error {
-			if _, err := exec.LookPath(bin); err == nil {
-				return nil
-			}
-			return installReleaseBinary(repo, bin)
-		},
+// setUpRepo clones repoURL into the dotfiles dir, or starts an empty repo
+// there when repoURL is empty, then records the dir for later commands. An
+// existing repo is kept as is.
+func (inst *Installer) setUpRepo(repoURL string) error {
+	_, statErr := os.Stat(filepath.Join(inst.dotfilesDir, ".git"))
+	switch {
+	case statErr == nil:
+	case repoURL != "":
+		if err := gitops.CloneRepo(repoURL, inst.dotfilesDir); err != nil {
+			return err
+		}
+	default:
+		if err := startRepo(inst.dotfilesDir); err != nil {
+			return err
+		}
 	}
+	return platform.SaveDotfilesDir(inst.dotfilesDir)
+}
+
+// starterManifest is the dot.toml written into a new empty repo.
+const starterManifest = `# What ` + "`dot init`" + ` sets up besides linking modules. Every key is optional.
+[bootstrap]
+# brew = ["fzf", "ripgrep"]       # Homebrew formulae for the whole setup
+# backup_targets = [".zshrc"]    # $HOME files moved aside before stowing
+# shell = "zsh"                  # login shell to set
+# github_auth = true             # run ` + "`gh auth login`" + ` if gh isn't logged in
+`
+
+// startRepo creates an empty git repo at dir with a commented dot.toml.
+func startRepo(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	if err := gitops.Init(dir); err != nil {
+		return err
+	}
+	return os.WriteFile(config.ManifestPath(dir), []byte(starterManifest), 0o644)
 }
 
 // ModuleTasks returns the steps that link one module, grouped under its name:
@@ -224,56 +229,6 @@ func DepsTask(mod config.Module) tui.Task {
 
 func needsSudo() bool { return len(runner.SudoPrefix()) > 0 }
 
-// manifest loads the bootstrap section of dotfiles.toml, returning a zero value
-// when the manifest is absent so callers fall back to built-in defaults.
-func (inst *Installer) manifest() config.BootstrapConfig {
-	m, _ := config.LoadManifest(inst.dotfilesDir)
-	return m.Bootstrap
-}
-
-// orDefault returns v when it is non-empty, otherwise def.
-func orDefault(v, def []string) []string {
-	if len(v) > 0 {
-		return v
-	}
-	return def
-}
-
-// installReleaseBinary downloads the latest GitHub release tarball for a
-// GoReleaser-style repo and installs the contained binary into ~/.local/bin
-// (which the dotfiles put on PATH). It assumes the asset is named
-// "<bin>_<goos>_<goarch>.tar.gz" and unpacks to a single executable named
-// <bin> — the convention shared by hopper (AugustDG/hopper) and gho
-// (AugustDG/ghotto).
-func installReleaseBinary(repo, bin string) error {
-	asset := fmt.Sprintf("%s_%s_%s.tar.gz", bin, runtime.GOOS, runtime.GOARCH)
-	url := fmt.Sprintf("https://github.com/%s/releases/latest/download/%s", repo, asset)
-
-	tmpDir, err := os.MkdirTemp("", bin+"-install-*")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpDir)
-
-	tarball := filepath.Join(tmpDir, asset)
-	if err := exec.Command("curl", "-fsSL", "-o", tarball, url).Run(); err != nil {
-		return fmt.Errorf("download %s: %w", bin, err)
-	}
-	if err := exec.Command("tar", "-xzf", tarball, "-C", tmpDir).Run(); err != nil {
-		return fmt.Errorf("extract %s: %w", bin, err)
-	}
-
-	binDir := filepath.Join(platform.HomeDir(), ".local", "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		return err
-	}
-	dst := filepath.Join(binDir, bin)
-	if err := exec.Command("cp", filepath.Join(tmpDir, bin), dst).Run(); err != nil {
-		return fmt.Errorf("install %s binary: %w", bin, err)
-	}
-	return os.Chmod(dst, 0o755)
-}
-
 func backupConflicts(homeDir string, targets []string) error {
 	needBackup := false
 	for _, f := range targets {
@@ -291,7 +246,7 @@ func backupConflicts(homeDir string, targets []string) error {
 		return nil
 	}
 
-	backupDir := filepath.Join(homeDir, fmt.Sprintf(".dotfiles-backup-%s", time.Now().Format("20060102-150405")))
+	backupDir := filepath.Join(homeDir, fmt.Sprintf(".dot-backup-%s", time.Now().Format("20060102-150405")))
 	if err := os.MkdirAll(backupDir, 0o755); err != nil {
 		return fmt.Errorf("create backup dir: %w", err)
 	}
@@ -320,24 +275,26 @@ func backupConflicts(homeDir string, targets []string) error {
 	return nil
 }
 
-func setDefaultShell() error {
-	zshBin := findZsh()
-	if zshBin == "" {
-		return fmt.Errorf("no zsh found")
+// setLoginShell makes the named shell the login shell of the target user,
+// registering it in /etc/shells first if needed.
+func setLoginShell(name string) error {
+	shellBin := findShell(name)
+	if shellBin == "" {
+		return fmt.Errorf("%s not found; add it to brew in dot.toml", name)
 	}
 
 	// Always operate on the human user (under sudo, $USER is "root"; SUDO_USER
-	// holds the original account). Compare against the configured login shell —
-	// not $SHELL, which reflects the currently-running shell, not the default.
+	// holds the original account). Compare against the configured login shell,
+	// not $SHELL, which reflects the currently-running shell.
 	user := targetUser()
-	if currentLoginShell(user) == zshBin {
+	if currentLoginShell(user) == shellBin {
 		return nil
 	}
 
 	shells, _ := os.ReadFile("/etc/shells")
-	if !strings.Contains(string(shells), zshBin) {
+	if !strings.Contains(string(shells), shellBin) {
 		cmd := runner.Sudo("tee", "-a", "/etc/shells")
-		cmd.Stdin = strings.NewReader(zshBin + "\n")
+		cmd.Stdin = strings.NewReader(shellBin + "\n")
 		cmd.Stdout = nil
 		cmd.Run()
 	}
@@ -347,26 +304,29 @@ func setDefaultShell() error {
 	// account. With no resolvable user (e.g. root in a minimal container),
 	// fall back to a no-username chsh, which changes the calling account.
 	if user == "" {
-		return runner.Sudo("chsh", "-s", zshBin).Run()
+		return runner.Sudo("chsh", "-s", shellBin).Run()
 	}
-	return runner.Sudo("chsh", "-s", zshBin, user).Run()
+	return runner.Sudo("chsh", "-s", shellBin, user).Run()
 }
 
-// defaultShellIsZsh reports whether the target user's login shell is already
-// the zsh setDefaultShell would choose.
-func defaultShellIsZsh() bool {
-	zshBin := findZsh()
-	return zshBin != "" && currentLoginShell(targetUser()) == zshBin
+// LoginShellIs reports whether the target user's login shell is already the
+// named shell, as setLoginShell would resolve it.
+func LoginShellIs(name string) bool {
+	shellBin := findShell(name)
+	return shellBin != "" && currentLoginShell(targetUser()) == shellBin
 }
 
-func findZsh() string {
-	for _, candidate := range []string{
-		"/opt/homebrew/bin/zsh",
-		"/home/linuxbrew/.linuxbrew/bin/zsh",
-		"/usr/local/bin/zsh",
-		"/bin/zsh",
-		"/usr/bin/zsh",
+// findShell returns the preferred install of the named shell: Homebrew's
+// first, then the system's.
+func findShell(name string) string {
+	for _, dir := range []string{
+		"/opt/homebrew/bin",
+		"/home/linuxbrew/.linuxbrew/bin",
+		"/usr/local/bin",
+		"/bin",
+		"/usr/bin",
 	} {
+		candidate := filepath.Join(dir, name)
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}

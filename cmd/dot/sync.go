@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 

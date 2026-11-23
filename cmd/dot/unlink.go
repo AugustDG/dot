@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +18,8 @@ func unlinkCmd() *cobra.Command {
 		Use:   "unlink [modules...]",
 		Short: "Remove modules' symlinks from $HOME, keeping them in the repo",
 		Long: "Removes each module's symlinks from $HOME. The module stays in the\n" +
-			"repository, so `dotfiles link` links it again. To stop managing a\n" +
-			"module and keep its files, use `dotfiles eject`.",
+			"repository, so `dot link` links it again. To stop managing a\n" +
+			"module and keep its files, use `dot eject`.",
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: moduleNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/bootstrap"
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/bootstrap"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func linkCmd() *cobra.Command {
 		Short: "Symlink modules into $HOME, with their deps and hooks",
 		Long: "Stows each module, installs its package deps and runs its post_install\n" +
 			"hook. With no modules, a terminal gets a picker. The reverse is\n" +
-			"`dotfiles unlink`. To set up a new machine, use `dotfiles init`.",
+			"`dot unlink`. To set up a new machine, use `dot init`.",
 		ValidArgsFunction: moduleNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLink(platform.DotfilesDir(), opts, args)

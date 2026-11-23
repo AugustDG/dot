@@ -3,10 +3,10 @@ package bootstrap
 import (
 	"runtime"
 
-	"github.com/AugustDG/dotfiles/internal/brew"
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/runner"
-	"github.com/AugustDG/dotfiles/internal/syspkg"
+	"github.com/AugustDG/dot/internal/brew"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/runner"
+	"github.com/AugustDG/dot/internal/syspkg"
 )
 
 // DepNames returns the dependency package names relevant to the current OS,

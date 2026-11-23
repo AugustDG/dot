@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/runner"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/runner"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"

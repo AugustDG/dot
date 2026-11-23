@@ -47,3 +47,27 @@ func TestEditor_EnvPrecedence(t *testing.T) {
 		t.Errorf("EDITOR should be used when VISUAL empty, got %q", got)
 	}
 }
+
+func TestDotfilesDir_Precedence(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("DOT_DIR", "")
+
+	if got := DotfilesDir(); got != filepath.Join(home, ".dotfiles") {
+		t.Errorf("default = %q", got)
+	}
+
+	saved := filepath.Join(home, "projects", "dotfiles")
+	if err := SaveDotfilesDir(saved); err != nil {
+		t.Fatal(err)
+	}
+	if got := DotfilesDir(); got != saved {
+		t.Errorf("saved dir = %q, want %q", got, saved)
+	}
+
+	t.Setenv("DOT_DIR", "~/env")
+	if got := DotfilesDir(); got != filepath.Join(home, "env") {
+		t.Errorf("DOT_DIR should win, got %q", got)
+	}
+}

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"os"
 
-	"github.com/AugustDG/dotfiles/internal/runner"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/runner"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +26,8 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "dotfiles",
-		Short:         "Manage dotfiles modules",
+		Use:           "dot",
+		Short:         "Manage a dotfiles repo of stow modules",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,

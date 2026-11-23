@@ -2,21 +2,30 @@ name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     tags: ["v*"]
-    # config-only syncs don't change the CLI; tag pushes ignore this filter
-    paths:
-      - "cmd/**"
-      - "internal/**"
-      - "go.mod"
-      - "go.sum"
-      - ".github/workflows/release.yml"
 
 permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install stow
+        run: sudo apt-get update && sudo apt-get install -y stow
+
+      - run: go vet ./...
+      - run: go test ./...
+
   build:
+    needs: test
     strategy:
       matrix:
         include:
@@ -43,12 +52,12 @@ jobs:
         run: |
           mkdir -p dist
           go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o "dist/dotfiles-${{ matrix.goos }}-${{ matrix.goarch }}" \
-            ./cmd/dotfiles
+            -o "dist/dot-${{ matrix.goos }}-${{ matrix.goarch }}" \
+            ./cmd/dot
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dotfiles-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: dot-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
 
   release:

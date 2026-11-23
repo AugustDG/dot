@@ -10,12 +10,28 @@ import (
 
 func TestSSHToHTTPS(t *testing.T) {
 	cases := map[string]string{
-		"git@github.com:AugustDG/dotfiles.git": "https://github.com/AugustDG/dotfiles.git",
-		"git@gitlab.com:group/sub/repo.git":    "https://gitlab.com/group/sub/repo.git",
+		"git@github.com:owner/dotfiles.git": "https://github.com/owner/dotfiles.git",
+		"git@gitlab.com:group/sub/repo.git": "https://gitlab.com/group/sub/repo.git",
 	}
 	for in, want := range cases {
 		if got := sshToHTTPS(in); got != want {
 			t.Errorf("sshToHTTPS(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestResolveRepoURL(t *testing.T) {
+	local := t.TempDir()
+	cases := map[string]string{
+		"owner/dotfiles":                    "https://github.com/owner/dotfiles.git",
+		"owner/dotfiles.git":                "https://github.com/owner/dotfiles.git",
+		"git@github.com:owner/dotfiles.git": "git@github.com:owner/dotfiles.git",
+		"https://gitlab.com/g/sub/repo.git": "https://gitlab.com/g/sub/repo.git",
+		local:                               local,
+	}
+	for in, want := range cases {
+		if got := ResolveRepoURL(in); got != want {
+			t.Errorf("ResolveRepoURL(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

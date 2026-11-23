@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ func addCmd() *cobra.Command {
 		Use:   "add <name>",
 		Short: "Scaffold a new empty module",
 		Long: "Creates a new module directory with a module.toml. Add files to it and run\n" +
-			"`dotfiles link <name>`, or use `dotfiles adopt <name> <path>` to pull an\n" +
+			"`dot link <name>`, or use `dot adopt <name> <path>` to pull an\n" +
 			"existing config in.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,7 +38,7 @@ func addCmd() *cobra.Command {
 				return fmt.Errorf("module %q already exists at %s", name, dir)
 			}
 			tui.OK("Created module %s at %s", name, dir)
-			tui.Item("add files, then run: dotfiles link %s", name)
+			tui.Item("add files, then run: dot link %s", name)
 			return nil
 		},
 	}

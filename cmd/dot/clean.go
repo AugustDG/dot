@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 

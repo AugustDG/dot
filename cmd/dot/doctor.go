@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/bootstrap"
-	"github.com/AugustDG/dotfiles/internal/brew"
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/bootstrap"
+	"github.com/AugustDG/dot/internal/brew"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -21,9 +21,9 @@ func doctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
 		Short: "Diagnose the dotfiles setup and report problems",
-		Long: "Runs a series of health checks — required tools, repo state, GitHub auth,\n" +
-			"default shell, PATH, module dependencies, submodules, and dangling links —\n" +
-			"and exits non-zero if any check fails.",
+		Long: "Checks required tools, repo state, PATH, module dependencies, submodules\n" +
+			"and dangling links, plus GitHub auth and the login shell when dot.toml asks\n" +
+			"for them. Exits non-zero if any check fails.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDoctor()
@@ -67,7 +67,6 @@ func environmentChecks(dotfilesDir, homeDir string) []tui.Check {
 		toolCheck("git", true),
 		toolCheck("stow", true),
 		toolCheck("brew", false),
-		toolCheck("gh", false),
 	)
 
 	if _, err := os.Stat(filepath.Join(dotfilesDir, ".git")); err != nil {
@@ -77,15 +76,25 @@ func environmentChecks(dotfilesDir, homeDir string) []tui.Check {
 		checks = append(checks, repoStateCheck(dotfilesDir))
 	}
 
-	if gitops.IsGHAuthenticated() {
-		checks = append(checks, tui.Check{Name: "github auth", Level: tui.LevelOK, Detail: "authenticated"})
-	} else {
-		checks = append(checks, tui.Check{Name: "github auth", Level: tui.LevelWarn,
-			Detail: "not logged in (run: gh auth login)"})
+	manifest, err := config.LoadManifest(dotfilesDir)
+	if err != nil {
+		checks = append(checks, tui.Check{Name: config.ManifestFile, Level: tui.LevelFail, Detail: err.Error()})
+	}
+	if manifest.Bootstrap.GitHubAuth {
+		checks = append(checks, githubAuthCheck())
+	}
+	if manifest.Bootstrap.Shell != "" {
+		checks = append(checks, shellCheck(manifest.Bootstrap.Shell))
 	}
 
-	checks = append(checks, shellCheck(), localBinCheck(), localRcCheck(homeDir))
-	return checks
+	return append(checks, localBinCheck())
+}
+
+func githubAuthCheck() tui.Check {
+	if gitops.IsGHAuthenticated() {
+		return tui.Check{Name: "github auth", Level: tui.LevelOK, Detail: "authenticated"}
+	}
+	return tui.Check{Name: "github auth", Level: tui.LevelWarn, Detail: "not logged in (run: gh auth login)"}
 }
 
 func toolCheck(name string, required bool) tui.Check {
@@ -127,16 +136,12 @@ func repoStateCheck(dotfilesDir string) tui.Check {
 		Detail: branch + ": " + strings.Join(notes, ", ")}
 }
 
-func shellCheck() tui.Check {
-	shell := os.Getenv("SHELL")
-	if strings.HasSuffix(shell, "zsh") {
-		return tui.Check{Name: "default shell", Level: tui.LevelOK, Detail: shell}
+func shellCheck(name string) tui.Check {
+	if bootstrap.LoginShellIs(name) {
+		return tui.Check{Name: "login shell", Level: tui.LevelOK, Detail: name}
 	}
-	detail := "not zsh"
-	if shell != "" {
-		detail = shell + " (expected zsh)"
-	}
-	return tui.Check{Name: "default shell", Level: tui.LevelWarn, Detail: detail}
+	return tui.Check{Name: "login shell", Level: tui.LevelWarn,
+		Detail: "not " + name + " (run: dot init)"}
 }
 
 func localBinCheck() tui.Check {
@@ -145,14 +150,6 @@ func localBinCheck() tui.Check {
 		return tui.Check{Name: "~/.local/bin", Level: tui.LevelOK, Detail: "on PATH"}
 	}
 	return tui.Check{Name: "~/.local/bin", Level: tui.LevelWarn, Detail: "not on PATH"}
-}
-
-func localRcCheck(homeDir string) tui.Check {
-	if _, err := os.Stat(filepath.Join(homeDir, ".zprofile.local")); err == nil {
-		return tui.Check{Name: "~/.zprofile.local", Level: tui.LevelOK, Detail: "present"}
-	}
-	return tui.Check{Name: "~/.zprofile.local", Level: tui.LevelWarn,
-		Detail: "missing (machine-local secrets go here)"}
 }
 
 // moduleChecks reports, for each installed module, its dependency and submodule
@@ -219,5 +216,5 @@ func danglingCheck(dotfilesDir, homeDir string, modules []config.Module) tui.Che
 		return tui.Check{Name: "dangling links", Level: tui.LevelOK, Detail: "none"}
 	}
 	return tui.Check{Name: "dangling links", Level: tui.LevelWarn,
-		Detail: fmt.Sprintf("%d found (run: dotfiles clean)", len(dangling))}
+		Detail: fmt.Sprintf("%d found (run: dot clean)", len(dangling))}
 }

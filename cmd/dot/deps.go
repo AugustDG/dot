@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/AugustDG/dotfiles/internal/bootstrap"
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/bootstrap"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 

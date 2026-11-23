@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	gitops "github.com/AugustDG/dotfiles/internal/git"
-	"github.com/AugustDG/dotfiles/internal/platform"
-	"github.com/AugustDG/dotfiles/internal/stow"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	gitops "github.com/AugustDG/dot/internal/git"
+	"github.com/AugustDG/dot/internal/platform"
+	"github.com/AugustDG/dot/internal/stow"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func pullCmd() *cobra.Command {
 			"the recorded commit, then re-stows the affected modules so new files are\n" +
 			"linked. With no arguments, re-stows all currently-installed modules.\n" +
 			"Submodules land on the commits the repo records, not their upstream latest;\n" +
-			"use `dotfiles bump` for that.",
+			"use `dot bump` for that.",
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: moduleNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -8,23 +8,26 @@ import (
 )
 
 // ManifestFile is the name of the optional top-level configuration file.
-const ManifestFile = "dotfiles.toml"
+const ManifestFile = "dot.toml"
 
-// Manifest is the optional top-level dotfiles.toml that customises the
-// bootstrap toolchain. When absent, built-in defaults are used.
+// Manifest is the optional top-level dot.toml that configures what `dot init`
+// sets up beyond linking modules. Every field is opt-in.
 type Manifest struct {
 	Bootstrap BootstrapConfig `toml:"bootstrap"`
 }
 
-// BootstrapConfig declares the packages and files the bootstrap phase manages.
+// BootstrapConfig declares what the bootstrap phase installs and configures
+// once the repo is cloned.
 type BootstrapConfig struct {
-	// CoreBrew is installed before the repo is cloned (git/stow/gh/zsh).
-	CoreBrew []string `toml:"core_brew"`
-	// GlobalBrew is installed after the repo is cloned (general toolchain).
-	GlobalBrew []string `toml:"global_brew"`
+	// Brew lists Homebrew formulae installed for the whole setup.
+	Brew []string `toml:"brew"`
 	// BackupTargets are files in $HOME moved aside if they exist as real
 	// files (not symlinks) before stowing.
 	BackupTargets []string `toml:"backup_targets"`
+	// Shell is the login shell to set, by binary name (e.g. "zsh").
+	Shell string `toml:"shell"`
+	// GitHubAuth runs `gh auth login` when gh isn't logged in yet.
+	GitHubAuth bool `toml:"github_auth"`
 }
 
 // ManifestPath returns the expected location of the manifest within dotfilesDir.
@@ -32,8 +35,8 @@ func ManifestPath(dotfilesDir string) string {
 	return filepath.Join(dotfilesDir, ManifestFile)
 }
 
-// LoadManifest reads dotfiles.toml from dotfilesDir. A missing file is not an
-// error: it returns a zero Manifest so callers fall back to built-in defaults.
+// LoadManifest reads dot.toml from dotfilesDir. A missing file is not an
+// error: it returns a zero Manifest, which configures nothing.
 func LoadManifest(dotfilesDir string) (Manifest, error) {
 	var m Manifest
 	path := ManifestPath(dotfilesDir)

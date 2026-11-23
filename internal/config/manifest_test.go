@@ -11,7 +11,7 @@ func TestLoadManifest_Absent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("absent manifest should not error: %v", err)
 	}
-	if len(m.Bootstrap.CoreBrew) != 0 || len(m.Bootstrap.GlobalBrew) != 0 {
+	if len(m.Bootstrap.Brew) != 0 || m.Bootstrap.Shell != "" || m.Bootstrap.GitHubAuth {
 		t.Errorf("absent manifest should be zero, got %+v", m)
 	}
 }
@@ -19,9 +19,10 @@ func TestLoadManifest_Absent(t *testing.T) {
 func TestLoadManifest_Present(t *testing.T) {
 	dir := t.TempDir()
 	content := `[bootstrap]
-core_brew = ["git", "stow"]
-global_brew = ["fzf", "jq"]
+brew = ["fzf", "jq"]
 backup_targets = [".zshrc"]
+shell = "zsh"
+github_auth = true
 `
 	if err := os.WriteFile(filepath.Join(dir, ManifestFile), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -30,11 +31,11 @@ backup_targets = [".zshrc"]
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(m.Bootstrap.CoreBrew) != 2 || m.Bootstrap.CoreBrew[1] != "stow" {
-		t.Errorf("core_brew = %v", m.Bootstrap.CoreBrew)
+	if len(m.Bootstrap.Brew) != 2 || m.Bootstrap.Brew[0] != "fzf" {
+		t.Errorf("brew = %v", m.Bootstrap.Brew)
 	}
-	if len(m.Bootstrap.GlobalBrew) != 2 || m.Bootstrap.GlobalBrew[0] != "fzf" {
-		t.Errorf("global_brew = %v", m.Bootstrap.GlobalBrew)
+	if m.Bootstrap.Shell != "zsh" || !m.Bootstrap.GitHubAuth {
+		t.Errorf("shell = %q, github_auth = %v", m.Bootstrap.Shell, m.Bootstrap.GitHubAuth)
 	}
 	if len(m.Bootstrap.BackupTargets) != 1 || m.Bootstrap.BackupTargets[0] != ".zshrc" {
 		t.Errorf("backup_targets = %v", m.Bootstrap.BackupTargets)

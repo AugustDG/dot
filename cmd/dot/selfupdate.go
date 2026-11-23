@@ -11,22 +11,22 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/tui"
 	"github.com/spf13/cobra"
 )
 
 // releaseRepo and releaseTag mirror install.sh: the CI "latest" prerelease
 // carries one binary asset per platform.
 const (
-	releaseRepo = "AugustDG/dotfiles"
+	releaseRepo = "AugustDG/dot"
 	releaseTag  = "latest"
 )
 
 func selfUpdateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "self-update",
-		Short: "Download and install the latest dotfiles CLI binary",
-		Long: "Replaces the running dotfiles binary with the latest release build for\n" +
+		Short: "Download and install the latest dot binary",
+		Long: "Replaces the running dot binary with the latest release build for\n" +
 			"this OS and architecture. The currently-installed location is updated in\n" +
 			"place.",
 		Args: cobra.NoArgs,
@@ -42,10 +42,10 @@ func runSelfUpdate() error {
 		return fmt.Errorf("locate current binary: %w", err)
 	}
 
-	asset := fmt.Sprintf("dotfiles-%s-%s", runtime.GOOS, runtime.GOARCH)
+	asset := fmt.Sprintf("dot-%s-%s", runtime.GOOS, runtime.GOARCH)
 	url := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", releaseRepo, releaseTag, asset)
 
-	errs, runErr := tui.RunTasks("Updating dotfiles CLI", []tui.Task{
+	errs, runErr := tui.RunTasks("Updating dot", []tui.Task{
 		{
 			Title: fmt.Sprintf("Download %s", asset),
 			Run:   func(ctx context.Context) error { return downloadBinary(ctx, url, target) },
@@ -98,7 +98,7 @@ func downloadBinary(ctx context.Context, url, target string) error {
 	}
 
 	dir := filepath.Dir(target)
-	tmp, err := os.CreateTemp(dir, ".dotfiles-update-*")
+	tmp, err := os.CreateTemp(dir, ".dot-update-*")
 	if err != nil {
 		return fmt.Errorf("create temp file in %s: %w", dir, err)
 	}

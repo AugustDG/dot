@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

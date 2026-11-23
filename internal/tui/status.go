@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/config"
+	"github.com/AugustDG/dot/internal/config"
 )
 
 type ModuleStatus struct {

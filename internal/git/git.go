@@ -9,13 +9,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/runner"
+	"github.com/AugustDG/dot/internal/runner"
 )
 
-const (
-	RepoSSH   = "git@github.com:AugustDG/dotfiles.git"
-	RepoHTTPS = "https://github.com/AugustDG/dotfiles.git"
-)
+// ResolveRepoURL turns a GitHub "owner/name" shorthand into its HTTPS clone
+// URL. URLs, scp-style SSH addresses and local paths pass through unchanged.
+func ResolveRepoURL(repo string) string {
+	if strings.Contains(repo, "://") || strings.HasPrefix(repo, "git@") {
+		return repo
+	}
+	if _, err := os.Stat(repo); err == nil {
+		return repo
+	}
+	owner, name, ok := strings.Cut(repo, "/")
+	if !ok || owner == "" || name == "" || strings.Contains(name, "/") {
+		return repo
+	}
+	return "https://github.com/" + owner + "/" + strings.TrimSuffix(name, ".git") + ".git"
+}
 
 func IsGHAuthenticated() bool {
 	cmd := exec.Command("gh", "auth", "status", "--hostname", "github.com")
@@ -50,19 +61,27 @@ func GHAuthLogin() error {
 	return nil
 }
 
+// CloneRepo clones url into dest, retrying over HTTPS when an SSH clone
+// fails. Submodules are left for `link` to initialise per module, after
+// dot.toml has had the chance to set up GitHub auth.
 func CloneRepo(url, dest string) error {
-	cmd := exec.Command("git", "clone", "--recurse-submodules", url, dest)
+	cmd := exec.Command("git", "clone", url, dest)
 	runner.ConfigureCmd(cmd)
 	if err := cmd.Run(); err != nil {
 		if strings.HasPrefix(url, "git@") {
 			httpsURL := sshToHTTPS(url)
-			fallback := exec.Command("git", "clone", "--recurse-submodules", httpsURL, dest)
+			fallback := exec.Command("git", "clone", httpsURL, dest)
 			runner.ConfigureCmd(fallback)
 			return fallback.Run()
 		}
 		return err
 	}
 	return nil
+}
+
+// Init creates an empty repository at dir.
+func Init(dir string) error {
+	return runGit("-C", dir, "init", "--quiet")
 }
 
 func InitSubmodules(dotfilesDir string, modulePaths []string) error {

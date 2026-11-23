@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AugustDG/dotfiles/internal/config"
+	"github.com/AugustDG/dot/internal/config"
 )
 
 func TestRenderStatusTableShowsDirtyModule(t *testing.T) {

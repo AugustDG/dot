@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/runner"
+	"github.com/AugustDG/dot/internal/runner"
 )
 
 func HasApt() bool {

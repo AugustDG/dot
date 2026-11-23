@@ -9,7 +9,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/AugustDG/dotfiles/internal/stow"
+	"github.com/AugustDG/dot/internal/stow"
 )
 
 // Module represents a dotfiles module parsed from a module.toml file.

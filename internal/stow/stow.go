@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/runner"
+	"github.com/AugustDG/dot/internal/runner"
 )
 
 // ConflictError reports that stow could not link a module because one or more

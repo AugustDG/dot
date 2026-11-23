@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/tui"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/tui"
 )
 
 func TestValidateModuleName(t *testing.T) {
@@ -110,7 +110,7 @@ func TestRunAdoptRollback(t *testing.T) {
 	mustMkdir(t, home)
 	mustMkdir(t, filepath.Join(df, "m"))
 	t.Setenv("HOME", home)
-	t.Setenv("DOTFILES_DIR", df)
+	t.Setenv("DOT_DIR", df)
 
 	aPath := filepath.Join(home, ".a")
 	bPath := filepath.Join(home, ".b")

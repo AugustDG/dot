@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/AugustDG/dotfiles/internal/config"
-	"github.com/AugustDG/dotfiles/internal/platform"
+	"github.com/AugustDG/dot/internal/config"
+	"github.com/AugustDG/dot/internal/platform"
 	"github.com/spf13/cobra"
 )
 

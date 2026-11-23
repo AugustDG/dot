@@ -1,4 +1,4 @@
-module github.com/AugustDG/dotfiles
+module github.com/AugustDG/dot
 
 go 1.26.2
 

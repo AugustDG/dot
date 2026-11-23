@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AugustDG/dotfiles/internal/config"
+	"github.com/AugustDG/dot/internal/config"
 )
 
 func TestMaterializeModule(t *testing.T) {
@@ -178,7 +178,7 @@ func TestRunEjectRejectsSubmoduleBeforeMutation(t *testing.T) {
 	mustWriteFile(t, filepath.Join(moduleDir, "module.toml"), "name='app'")
 	mustWriteFile(t, filepath.Join(dotfilesDir, ".gitmodules"), "[submodule \"app/sub\"]\n\tpath = app/sub\n\turl = example.invalid/repo\n")
 	t.Setenv("HOME", homeDir)
-	t.Setenv("DOTFILES_DIR", dotfilesDir)
+	t.Setenv("DOT_DIR", dotfilesDir)
 
 	err := runEject([]string{"app"}, true, false)
 	if err == nil || !strings.Contains(err.Error(), "contains Git submodules") {
@@ -224,7 +224,7 @@ func TestRunEjectWithSubmodules(t *testing.T) {
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("HOME", homeDir)
-	t.Setenv("DOTFILES_DIR", dotfilesDir)
+	t.Setenv("DOT_DIR", dotfilesDir)
 
 	// Dirty nested worktrees are rejected before anything is unstowed.
 	mustWriteFile(t, filepath.Join(dotfilesDir, "app", "sub", "sub.conf"), "dirty")

@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"golang.org/x/term"
 )
 
@@ -35,13 +36,50 @@ func ExpandHome(path string) string {
 	return path
 }
 
-// DotfilesDir returns the dotfiles directory from the DOTFILES_DIR env var,
-// falling back to ~/projects/dotfiles.
-func DotfilesDir() string {
-	if dir := os.Getenv("DOTFILES_DIR"); dir != "" {
-		return dir
+// DefaultDotfilesDir is where `dot init` puts the repo when no --dir is given.
+func DefaultDotfilesDir() string {
+	return filepath.Join(HomeDir(), ".dotfiles")
+}
+
+// userConfig is the CLI's own settings file, written by `dot init`.
+type userConfig struct {
+	Dir string `toml:"dir"`
+}
+
+// ConfigFile returns the path of the CLI's settings file:
+// $XDG_CONFIG_HOME/dot/config.toml, or ~/.config/dot/config.toml.
+func ConfigFile() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		base = filepath.Join(HomeDir(), ".config")
 	}
-	return filepath.Join(HomeDir(), "projects", "dotfiles")
+	return filepath.Join(base, "dot", "config.toml")
+}
+
+// DotfilesDir returns the dotfiles repo directory: $DOT_DIR if set, else the
+// dir saved in ConfigFile by `dot init`, else DefaultDotfilesDir.
+func DotfilesDir() string {
+	if dir := os.Getenv("DOT_DIR"); dir != "" {
+		return ExpandHome(dir)
+	}
+	var cfg userConfig
+	if _, err := toml.DecodeFile(ConfigFile(), &cfg); err == nil && cfg.Dir != "" {
+		return ExpandHome(cfg.Dir)
+	}
+	return DefaultDotfilesDir()
+}
+
+// SaveDotfilesDir records dir in ConfigFile so later commands find the repo.
+func SaveDotfilesDir(dir string) error {
+	path := ConfigFile()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	var buf strings.Builder
+	if err := toml.NewEncoder(&buf).Encode(userConfig{Dir: dir}); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(buf.String()), 0o644)
 }
 
 // LocalBin returns ~/.local/bin, the install target for user binaries.
