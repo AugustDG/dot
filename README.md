@@ -23,10 +23,6 @@ installs Homebrew, git and stow, clones the repo to `~/.dotfiles`, applies its
 `DOT_INSTALL_DIR` changes where the binary goes. `DOT_SKIP_INIT=1` installs it
 without running `init`.
 
-Graphviz also ships a `dot` command. If you have it, put `~/.local/bin` before
-the Homebrew and system bin dirs on your PATH, or install `dot` elsewhere with
-`DOT_INSTALL_DIR`.
-
 ## Try it without a repo
 
 ```bash
